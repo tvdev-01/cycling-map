@@ -20,6 +20,7 @@ import io
 from multiprocessing import Pool
 import os
 import sys
+from threading import Thread
 from time import time
 
 import folium
@@ -113,7 +114,8 @@ class MainWindow(QDialog):
 
     def generate_map(self):
 
-        generate_a2_map(self.coords)
+        thread = Thread(target=generate_a2_map, args=(self.coords,))
+        thread.start()
 
 def load_activity(path):
 
