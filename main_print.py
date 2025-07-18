@@ -105,9 +105,6 @@ def add_header_and_footer(map, width, height, heading, scale_factor=1):
 
 def generate_png(map, name, prefix='', suffix=''):
 
-    if not os.path.isdir('generated'):
-        os.mkdir('generated')
-
     output_filename = os.path.join('generated', f'{prefix}{name}{suffix}.png')
     with open(output_filename, 'wb') as f:
         f.write(map._to_png())
