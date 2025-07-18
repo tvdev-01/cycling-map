@@ -24,6 +24,7 @@ import folium
 from folium.plugins import HeatMap
 
 from PyQt6.QtCore import Qt, QThread
+from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPushButton, QVBoxLayout, QMessageBox
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
@@ -58,15 +59,38 @@ class MainWindow(QDialog):
 
         self.web_engine_view = QWebEngineView()
         self.web_engine_view.setGeometry(0, 0, 1600, 1200)
+        self.web_engine_view.setMinimumSize(40, 30)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.web_engine_view)
         layout.addWidget(button_box)
 
+        # Dialog window
+
         self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
 
+        self.resize(800, 600)
+        self.center_on_cursor_screen()
+
+        # Show activities
+
         self.show_activities()
+
+    def center_on_cursor_screen(self):
+
+        cursor_pos = QCursor.pos()
+        screen = QApplication.screenAt(cursor_pos)
+        if screen is None:
+            screen = QApplication.primaryScreen()
+
+        screen_geometry = screen.availableGeometry()
+        size = self.size()
+
+        x = screen_geometry.x() + (screen_geometry.width() - size.width()) // 2
+        y = screen_geometry.y() + (screen_geometry.height() - size.height()) // 2
+
+        self.move(x, y)
 
     def show_activities(self):
 
@@ -105,11 +129,24 @@ class MainWindow(QDialog):
 
     def on_processing_finished(self, coords):
 
-        self.progress_popup.close()
-        np.save(ACTIVITY_COORDS, coords)
+        self.progress_popup.hide()
+        self.progress_popup.deleteLater()
+
+        if coords is None or len(coords) == 0:
+            QMessageBox.information(self, "No Data", "No coordinates were processed.")
+            return
+
         self.create_map(coords)
 
     def create_map(self, coords):
+
+        if coords is None or len(coords) == 0:
+            QMessageBox.warning(self, "No Data", "No valid coordinates to display.")
+            return
+
+        if np.isnan(coords).any():
+            QMessageBox.warning(self, "Invalid Data", "Coordinate data contains NaNs.")
+            return
 
         self.coords = coords
 
@@ -124,6 +161,9 @@ class MainWindow(QDialog):
         html_buffer = io.BytesIO()
         folium_map.save(html_buffer, close_file=False)
         self.web_engine_view.setHtml(html_buffer.getvalue().decode())
+
+        self.resize(1600, 1200)
+        self.center_on_cursor_screen()
 
     def create_offline_map(self):
 

@@ -4,7 +4,7 @@ import os
 import numpy as np
 from enum import Enum
 from PyQt6.QtCore import QObject, pyqtSignal
-from main_helpers import load_activities, filter_coords
+from main_helpers import ACTIVITY_COORDS, ACTIVITY_FILES, load_activities, filter_coords
 
 ACTIVITIES = "activities"
 FIT_EXT = ".fit"
@@ -28,7 +28,12 @@ class CoordWorker(QObject):
     def run(self):
 
         if self.mode == CoordMode.REGENERATE:
+
             files = {f for f in os.listdir(ACTIVITIES) if f.lower().endswith(FIT_EXT)}
+            with open(ACTIVITY_FILES, "w") as f:
+                for fname in sorted(files):
+                    f.write(f"{fname}\n")
+
             coords = load_activities(files)
             coords = filter_coords(coords, min_distance=100)
 
@@ -39,4 +44,5 @@ class CoordWorker(QObject):
         else:
             coords = np.empty((0, 2))
 
+        np.save(ACTIVITY_COORDS, coords)
         self.finished.emit(coords)
