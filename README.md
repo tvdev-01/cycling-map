@@ -1,4 +1,4 @@
-# A QT based utility to create a heatmap of Gammin activities.
+# A QT based utility to create a heatmap of Garmin activities.
 
 Create an activities directory at same level as python files.
 Copy your Garmin fit files to this directory. Thus:
