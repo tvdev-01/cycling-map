@@ -27,8 +27,8 @@ def generate_a2_map(coords):
     # lat_min, long_min = coords.min(axis=0)
     # lat_max, long_max = coords.max(axis=0)
 
-    lat_min, long_min = 51.62, -8.96
-    lat_max, long_max = 51.97, -8.26
+    lat_min, long_min = 51.66, -8.99
+    lat_max, long_max = 51.90, -7.95
 
     width, height = determine_orientation(lat_min, lat_max, long_min, long_max, scale_factor=20)
 
