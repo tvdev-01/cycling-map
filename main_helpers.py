@@ -1,3 +1,17 @@
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
 # main_helpers.py
 
 import os
@@ -26,7 +40,7 @@ def get_new_activity_files():
         with open(ACTIVITY_FILES, "r") as f:
             known_files = {line.strip() for line in f}
     current_files = {f for f in os.listdir(ACTIVITIES) if f.lower().endswith(FIT_EXT)}
-    
+
     new_files = current_files - known_files
 
     if new_files:
