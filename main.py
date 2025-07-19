@@ -25,12 +25,36 @@ from folium.plugins import HeatMap
 
 from PyQt6.QtCore import Qt, QThread
 from PyQt6.QtGui import QCursor
-from PyQt6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPushButton, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QMessageBox, QPushButton, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from coord_worker import CoordMode, CoordWorker
 from main_helpers import ACTIVITY_COORDS, ACTIVITY_FILES, GENERATED, get_new_activity_files
 from main_print import generate_a2_map
+
+class ProgressDialog(QDialog):
+
+    def __init__(self, parent=None):
+
+        super().__init__(parent)
+        self.setWindowTitle("Please Wait")
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+
+        self.layout = QVBoxLayout(self)
+
+        self.label = QLabel("", self)
+        self.layout.addWidget(self.label)
+
+        self.close_button = QPushButton("Close", self)
+        self.close_button.clicked.connect(self.accept)
+        self.layout.addWidget(self.close_button)
+
+        self.setFixedWidth(256)
+
+    def append_text(self, text):
+
+        self.label.setText(self.label.text() + text)
 
 class MainWindow(QDialog):
 
@@ -39,6 +63,7 @@ class MainWindow(QDialog):
         super().__init__()
 
         self.coords = None
+        self.progress_popup = None
 
         self.setWindowTitle('Map Activities')
 
@@ -58,7 +83,7 @@ class MainWindow(QDialog):
         # Web view
 
         self.web_engine_view = QWebEngineView()
-        self.web_engine_view.setGeometry(0, 0, 1600, 1200)
+        self.web_engine_view.setGeometry(0, 0, 40, 30)
         self.web_engine_view.setMinimumSize(40, 30)
 
         layout = QVBoxLayout(self)
@@ -100,19 +125,16 @@ class MainWindow(QDialog):
         if not os.path.exists(ACTIVITY_COORDS) or not os.path.exists(ACTIVITY_FILES):
             self.run_async_task(CoordMode.REGENERATE)
         else:
+            existing_coords = np.load(ACTIVITY_COORDS)
             new_files = get_new_activity_files()
             if new_files:
-                existing = np.load(ACTIVITY_COORDS)
-                self.run_async_task(CoordMode.MERGE, files=new_files, existing_coords=existing)
+                self.run_async_task(CoordMode.MERGE, files=new_files, existing_coords=existing_coords)
             else:
-                self.create_map(np.load(ACTIVITY_COORDS))
+                self.create_map(existing_coords)
 
     def run_async_task(self, mode: CoordMode, files=None, existing_coords=None):
 
-        self.progress_popup = QMessageBox(self)
-        self.progress_popup.setWindowTitle("Please Wait")
-        self.progress_popup.setText("Processing activity files...")
-        self.progress_popup.setStandardButtons(QMessageBox.StandardButton.NoButton)
+        self.progress_popup = ProgressDialog(self)
         self.progress_popup.show()
 
         self.thread = QThread()
@@ -120,6 +142,7 @@ class MainWindow(QDialog):
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
+        self.worker.progress.connect(self.on_progress_update)
         self.worker.finished.connect(self.on_processing_finished)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
@@ -127,14 +150,16 @@ class MainWindow(QDialog):
 
         self.thread.start()
 
+    def on_progress_update(self, text):
+
+        self.progress_popup.append_text(text)
+
     def on_processing_finished(self, coords):
 
-        self.progress_popup.hide()
-        self.progress_popup.deleteLater()
-
-        if coords is None or len(coords) == 0:
-            QMessageBox.information(self, "No Data", "No coordinates were processed.")
-            return
+        if self.progress_popup and self.progress_popup.isVisible():
+            self.progress_popup.hide()
+            self.progress_popup.deleteLater()
+            self.progress_popup = None
 
         self.create_map(coords)
 
@@ -170,6 +195,15 @@ class MainWindow(QDialog):
         if self.coords is not None:
             from threading import Thread
             Thread(target=generate_a2_map, args=(self.coords,)).start()
+
+    def closeEvent(self, a0):
+
+        if self.progress_popup and self.progress_popup.isVisible():
+            self.progress_popup.hide()
+            self.progress_popup.deleteLater()
+            self.progress_popup = None
+
+        return super().closeEvent(a0)
 
 def main():
 

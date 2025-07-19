@@ -25,8 +25,8 @@ def get_new_activity_files():
     if os.path.exists(ACTIVITY_FILES):
         with open(ACTIVITY_FILES, "r") as f:
             known_files = {line.strip() for line in f}
-
     current_files = {f for f in os.listdir(ACTIVITIES) if f.lower().endswith(FIT_EXT)}
+    
     new_files = current_files - known_files
 
     if new_files:
@@ -89,7 +89,7 @@ def haversine(coord1, coord2):
     a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     return EARTH_RADIUS_M * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-def filter_coords(coords, filtered=None, min_distance=5):
+def filter_coords(coords, filtered=None, min_distance=5, signal=None):
 
     if coords is None or len(coords) == 0:
         return np.array(filtered) if filtered else np.array([])
@@ -100,8 +100,11 @@ def filter_coords(coords, filtered=None, min_distance=5):
     else:
         coords_iter = coords
 
-    for coord in coords_iter:
+    n = len(coords_iter)
+    for i, coord in enumerate(coords_iter):
         if all(haversine(coord, f) >= min_distance for f in filtered):
             filtered.append(coord)
+        if signal and i > 0 and i % 10000 == 0:
+            signal.emit(f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{i} / {n}<br>')
 
     return np.array(filtered)
